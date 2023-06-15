@@ -1,7 +1,11 @@
 import glsl from 'vite-plugin-glsl'
 
 export default {
-  plugins: [glsl()],
+  plugins: [
+    glsl({
+      compress: false,
+    }),
+  ],
   build: {
     outDir: 'docs',
   },
