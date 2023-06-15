@@ -1,7 +1,7 @@
 import vertexSource from './vertex.glsl'
 import fragmentSource from './fragment.glsl'
 import example from './example.glsl'
-import { getSourceFromUrl, setUrlFromSource, updateTitle } from './browser'
+import { getSourceFromUrl, setUrlFromSource } from './browser'
 import { setEditSource } from './edit'
 
 let gl = null
@@ -91,6 +91,19 @@ export const initGL = canvas => {
 
   gl.drawArrays(gl.TRIANGLES, 0, 3)
   sizeGL()
+
+  const playpause = document.getElementById('playpause')
+  playpause.addEventListener('click', () => {
+    if (pause !== null) {
+      playpause.innerHTML = '⏸️'
+      pauseDt += performance.now() / 1000 - pause
+      pause = null
+      render()
+    } else {
+      playpause.innerHTML = '▶️'
+      pause = performance.now() / 1000
+    }
+  })
 }
 
 export const sizeGL = () => {
@@ -112,16 +125,46 @@ export const sizeGL = () => {
 }
 
 let sma = 0
-const k = 25
+const k = 50
 const dts = new Array(k).fill(0)
+
 let t0 = performance.now() / 1000
+let pauseDt = 0
 let raf = null
+let pause = null
 let frame = 0
 let mouse = [0, 0, 0, 0]
+
+export const render = () => {
+  const t = performance.now() / 1000 - pauseDt
+  dts.push(t - t0)
+  t0 = t
+  sma += (dts[dts.length - 1] - dts.shift()) / dts.length
+  gl.uniform1f(uniforms.iTime, t)
+  gl.uniform1f(uniforms.iFrame, frame++)
+  gl.uniform1f(uniforms.iTimeDelta, dts[dts.length - 1])
+  gl.uniform4fv(uniforms.iMouse, mouse)
+
+  gl.drawArrays(gl.TRIANGLES, 0, 3)
+  if (mouse[3] > 0) {
+    mouse[3] *= -1
+  }
+  if (pause === null) {
+    raf = requestAnimationFrame(render)
+  }
+}
+
+setInterval(() => {
+  if (frame > k) {
+    document.getElementById('fps').innerHTML = `${(1 / sma).toFixed(1)}`
+  }
+}, 100)
+
 const onMove = e => {
   mouse[0] = e.clientX
   mouse[1] = window.innerHeight - e.clientY
 }
+
 const onDown = e => {
   if (e.button !== 0 || e.target.tagName !== 'CANVAS') {
     return
@@ -139,25 +182,5 @@ const onDown = e => {
   window.addEventListener('pointermove', onMove)
   window.addEventListener('pointerup', onUp, { once: true })
 }
+
 window.addEventListener('pointerdown', onDown)
-
-export const render = () => {
-  const t = performance.now() / 1000
-  dts.push(t - t0)
-  t0 = t
-  sma += (dts[dts.length - 1] - dts.shift()) / k
-  gl.uniform1f(uniforms.iTime, t)
-  gl.uniform1f(uniforms.iFrame, frame++)
-  gl.uniform1f(uniforms.iTimeDelta, dts[dts.length - 1])
-  gl.uniform4fv(uniforms.iMouse, mouse)
-
-  gl.drawArrays(gl.TRIANGLES, 0, 3)
-  if (mouse[3] > 0) {
-    mouse[3] *= -1
-  }
-  raf = requestAnimationFrame(render)
-}
-
-setInterval(() => {
-  updateTitle(`FPS: ${(1 / sma).toFixed(2)}`)
-}, 250)

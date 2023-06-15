@@ -60,6 +60,7 @@ export const initEdit = () => {
       initCodeMirror()
     }
     editor.style.display = editor.style.display !== 'block' ? 'block' : 'none'
+    toggler.innerHTML = editor.style.display === 'block' ? '❌' : '✏️'
   })
 }
 
