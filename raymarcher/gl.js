@@ -8,12 +8,13 @@ let gl = null
 let program = null
 let vertexShader = null
 let fragmentShader = null
+
 const uniforms = {}
+
 let shader = getSourceFromUrl() || example
 
 export const getShader = () => shader
 export const setShader = newShader => {
-  console.log('setting shader')
   const compilationError = compileShader(
     plugFragment(fragmentSource, newShader),
     fragmentShader
@@ -27,6 +28,8 @@ export const setShader = newShader => {
   }
   setUrlFromSource(newShader)
   shader = newShader
+  frame = 0
+  t0 = performance.now() / 1000
   sizeGL()
 }
 
@@ -61,7 +64,9 @@ const linkProgram = () => {
 
   uniforms.iTime = gl.getUniformLocation(program, 'iTime')
   uniforms.iTimeDelta = gl.getUniformLocation(program, 'iTimeDelta')
+  uniforms.iFrame = gl.getUniformLocation(program, 'iFrame')
   uniforms.iResolution = gl.getUniformLocation(program, 'iResolution')
+  uniforms.iMouse = gl.getUniformLocation(program, 'iMouse')
 }
 
 const plugFragment = (fragmentShader, plug) =>
@@ -111,14 +116,45 @@ const k = 25
 const dts = new Array(k).fill(0)
 let t0 = performance.now() / 1000
 let raf = null
+let frame = 0
+let mouse = [0, 0, 0, 0]
+const onMove = e => {
+  mouse[0] = e.clientX
+  mouse[1] = window.innerHeight - e.clientY
+}
+const onDown = e => {
+  if (e.button !== 0 || e.target.tagName !== 'CANVAS') {
+    return
+  }
+  mouse[0] = e.clientX
+  mouse[1] = window.innerHeight - e.clientY
+  mouse[2] = e.clientX
+  mouse[3] = window.innerHeight - e.clientY
+
+  const onUp = e => {
+    mouse[2] *= -1
+
+    window.removeEventListener('pointermove', onMove)
+  }
+  window.addEventListener('pointermove', onMove)
+  window.addEventListener('pointerup', onUp, { once: true })
+}
+window.addEventListener('pointerdown', onDown)
+
 export const render = () => {
   const t = performance.now() / 1000
   dts.push(t - t0)
   t0 = t
   sma += (dts[dts.length - 1] - dts.shift()) / k
   gl.uniform1f(uniforms.iTime, t)
+  gl.uniform1f(uniforms.iFrame, frame++)
   gl.uniform1f(uniforms.iTimeDelta, dts[dts.length - 1])
+  gl.uniform4fv(uniforms.iMouse, mouse)
+
   gl.drawArrays(gl.TRIANGLES, 0, 3)
+  if (mouse[3] > 0) {
+    mouse[3] *= -1
+  }
   raf = requestAnimationFrame(render)
 }
 

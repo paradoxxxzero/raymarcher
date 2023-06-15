@@ -2,6 +2,8 @@
 precision highp float;
 uniform float iTime;
 uniform float iTimeDelta;
+uniform float iFrame;
+uniform vec4 iMouse;
 uniform vec3 iResolution;
 
 out vec4 fragColor;
