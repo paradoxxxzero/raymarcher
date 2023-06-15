@@ -4,6 +4,12 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Ray Marcher</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fira+Code&display=swap"
+      rel="stylesheet"
+    />
     <style>
       html,
       body {
@@ -13,15 +19,26 @@
         height: 100%;
         overflow: hidden;
         background-color: black;
+        font-family: 'Fira Code', monospace;
       }
       .commands {
         position: absolute;
         top: 0;
         right: 0;
         z-index: 10;
+        display: flex;
+        flex-direction: column;
       }
       .button {
         font-size: 1.5em;
+        padding: 0.5em;
+        background-color: rgba(0, 0, 0, 0.25);
+        border: none;
+        color: white;
+        cursor: pointer;
+      }
+      #fps {
+        font-size: 1em;
         padding: 0.5em;
         background-color: rgba(0, 0, 0, 0.25);
         border: none;
@@ -35,8 +52,8 @@
         width: 100%;
         height: 100%;
         z-index: 5;
-        mix-blend-mode: plus-lighter;
-        backdrop-filter: brightness(0.25);
+        /* mix-blend-mode: plus-lighter; */
+        backdrop-filter: brightness(0.15);
         display: none;
         overflow: auto;
         font-size: 1.25em;
@@ -45,15 +62,20 @@
         background: transparent;
         outline: none !important;
       }
+      .cm-scroller {
+        font-family: 'Fira Code', monospace !important;
+      }
       .cm-gutters {
         background: rgba(255, 255, 255, 0.05) !important;
       }
     </style>
-    <script type="module" crossorigin src="./assets/index-b1cb5775.js"></script>
+    <script type="module" crossorigin src="./assets/index-6bb25efd.js"></script>
   </head>
   <body>
     <aside class="commands">
       <button id="edit" class="button">✏️</button>
+      <button id="playpause" class="button">⏸️</button>
+      <div id="fps" title="fps"></div>
     </aside>
     <canvas id="gl"></canvas>
     <aside id="editor" class="editor"></aside>
