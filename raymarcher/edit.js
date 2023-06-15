@@ -8,16 +8,16 @@ import { linter } from '@codemirror/lint'
 import fragmentSource from './fragment.glsl'
 
 let codemirror = null
+let currentError = null
 const shift = fragmentSource.split('##SHADER##')[0].split('\n').length
 
 const compilerLinter = linter(view => {
   const { doc } = view.state
   const diagnostics = []
-  const error = setShader(doc.toString())
-  if (error) {
+  if (currentError) {
     const errorRE = /ERROR: (\d+):(\d+): (.*)/g
     let parsed
-    while ((parsed = errorRE.exec(error))) {
+    while ((parsed = errorRE.exec(currentError))) {
       const [, column, line, message] = parsed
       diagnostics.push({
         from: doc.line(+line + 1 - shift).from + +column,
@@ -28,6 +28,12 @@ const compilerLinter = linter(view => {
     }
   }
   return diagnostics
+})
+
+const onChange = EditorView.updateListener.of(v => {
+  if (v.docChanged && !v.transactions.some(t => t.isUserEvent('url'))) {
+    currentError = setShader(v.state.doc.toString())
+  }
 })
 
 const closeOnEscape = keymap.of([
@@ -43,7 +49,14 @@ const closeOnEscape = keymap.of([
 const initCodeMirror = () => {
   const startState = EditorState.create({
     doc: getShader(),
-    extensions: [basicSetup, oneDark, cpp(), compilerLinter, closeOnEscape],
+    extensions: [
+      basicSetup,
+      oneDark,
+      cpp(),
+      onChange,
+      compilerLinter,
+      closeOnEscape,
+    ],
   })
 
   codemirror = new EditorView({
