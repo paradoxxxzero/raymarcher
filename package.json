@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "devDependencies": {
+    "@rollup/pluginutils": "^5.0.2",
     "vite": "^4.3.9"
   },
   "dependencies": {
@@ -20,7 +21,6 @@
     "@codemirror/view": "^6.13.2",
     "@lezer/common": "^1.0.3",
     "codemirror": "^6.0.1",
-    "lz-string": "^1.5.0",
-    "vite-plugin-glsl": "^1.1.2"
+    "lz-string": "^1.5.0"
   }
 }

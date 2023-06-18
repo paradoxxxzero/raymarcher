@@ -3,6 +3,7 @@ import fragmentSource from './fragment.glsl'
 import example from './example.glsl'
 import { getSourceFromUrl, setUrlFromSource } from './browser'
 import { setEditSource } from './edit'
+import { insertShader, preprocessShader } from './lib/preprocess'
 
 let gl = null
 let program = null
@@ -16,7 +17,7 @@ let shader = getSourceFromUrl() || example
 export const getShader = () => shader
 export const setShader = newShader => {
   const compilationError = compileShader(
-    plugFragment(fragmentSource, newShader),
+    insertShader(fragmentSource, newShader),
     fragmentShader
   )
   if (compilationError) {
@@ -44,6 +45,7 @@ window.addEventListener('popstate', () => {
 const compileShader = (shaderSource, shader) => {
   gl.shaderSource(shader, shaderSource)
   gl.compileShader(shader)
+  window.shader = shaderSource
   const success = gl.getShaderParameter(shader, gl.COMPILE_STATUS)
   if (!success) {
     const error = gl.getShaderInfoLog(shader)
@@ -69,9 +71,6 @@ const linkProgram = () => {
   uniforms.iMouse = gl.getUniformLocation(program, 'iMouse')
 }
 
-const plugFragment = (fragmentShader, plug) =>
-  fragmentShader.replace('##SHADER##', plug)
-
 export const initGL = canvas => {
   gl = canvas.getContext('webgl2')
 
@@ -79,7 +78,7 @@ export const initGL = canvas => {
   fragmentShader = gl.createShader(gl.FRAGMENT_SHADER)
 
   compileShader(vertexSource, vertexShader)
-  compileShader(plugFragment(fragmentSource, shader), fragmentShader)
+  compileShader(insertShader(fragmentSource, getShader()), fragmentShader)
 
   program = gl.createProgram()
   gl.attachShader(program, vertexShader)

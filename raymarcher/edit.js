@@ -1,6 +1,8 @@
 import { basicSetup } from 'codemirror'
 import { cpp } from '@codemirror/lang-cpp'
 import { EditorState } from '@codemirror/state'
+import { indentWithTab } from '@codemirror/commands'
+import { foldAll, ensureSyntaxTree } from '@codemirror/language'
 import { EditorView, keymap } from '@codemirror/view'
 import { getShader, setShader } from './gl'
 import { oneDark } from '@codemirror/theme-one-dark'
@@ -51,6 +53,7 @@ const initCodeMirror = () => {
     doc: getShader(),
     extensions: [
       basicSetup,
+      keymap.of([indentWithTab]),
       oneDark,
       cpp(),
       onChange,
@@ -63,6 +66,10 @@ const initCodeMirror = () => {
     state: startState,
     parent: document.getElementById('editor'),
   })
+
+  //   ensureSyntaxTree(codemirror.state, codemirror.state.doc.length, 5000)
+  //   codemirror.dispatch({})
+  //   foldAll(codemirror)
 }
 
 export const initEdit = () => {

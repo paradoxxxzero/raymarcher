@@ -1,4 +1,4 @@
-import glsl from 'vite-plugin-glsl'
+import glsl from './vite-glsl'
 
 export default {
   base: '',
