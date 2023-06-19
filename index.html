@@ -18,11 +18,12 @@
         width: 100%;
         height: 100%;
         overflow: hidden;
+        position: fixed;
         background-color: black;
         font-family: 'Fira Code', monospace;
       }
       .commands {
-        position: absolute;
+        position: fixed;
         top: 0;
         right: 0;
         z-index: 10;
@@ -46,17 +47,30 @@
         cursor: pointer;
       }
       .editor {
-        position: absolute;
+        position: fixed;
+        z-index: 5;
+        display: none;
+        overflow: auto;
+        font-size: 1em;
+      }
+      .cover .editor {
         top: 0;
         left: 0;
         width: 100%;
         height: 100%;
-        z-index: 5;
-        /* mix-blend-mode: plus-lighter; */
         backdrop-filter: brightness(0.15);
-        display: none;
-        overflow: auto;
-        font-size: 1.25em;
+      }
+      .vside .editor {
+        top: 0;
+        left: 50%;
+        width: 50%;
+        height: 100%;
+      }
+      .hside .editor {
+        top: 50%;
+        left: 0;
+        width: 100%;
+        height: 50%;
       }
       .cm-editor {
         background: transparent;
@@ -74,6 +88,7 @@
     <aside class="commands">
       <button id="edit" class="button">✏️</button>
       <button id="playpause" class="button">⏸️</button>
+      <button id="layout" class="button" style="display: none">🖥️</button>
       <div id="fps" title="fps"></div>
     </aside>
     <canvas id="gl"></canvas>

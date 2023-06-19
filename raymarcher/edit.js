@@ -4,7 +4,7 @@ import { EditorState } from '@codemirror/state'
 import { indentWithTab } from '@codemirror/commands'
 import { foldAll, ensureSyntaxTree } from '@codemirror/language'
 import { EditorView, keymap } from '@codemirror/view'
-import { getShader, setShader } from './gl'
+import { getShader, setShader, sizeGL } from './gl'
 import { oneDark } from '@codemirror/theme-one-dark'
 import { linter } from '@codemirror/lint'
 import fragmentSource from './fragment.glsl'
@@ -55,6 +55,7 @@ const initCodeMirror = () => {
       basicSetup,
       keymap.of([indentWithTab]),
       oneDark,
+      EditorView.lineWrapping,
       cpp(),
       onChange,
       compilerLinter,
@@ -72,15 +73,47 @@ const initCodeMirror = () => {
   //   foldAll(codemirror)
 }
 
+const layouts = {
+  cover: '🖥️',
+  vside: '📖',
+  hside: '🗒️',
+}
+
 export const initEdit = () => {
   const editor = document.getElementById('editor')
   const toggler = document.getElementById('edit')
+  const layout = document.getElementById('layout')
   toggler.addEventListener('click', () => {
     if (!codemirror) {
       initCodeMirror()
     }
     editor.style.display = editor.style.display !== 'block' ? 'block' : 'none'
     toggler.innerHTML = editor.style.display === 'block' ? '❌' : '✏️'
+    layout.style.display = editor.style.display
+
+    const [cls, icon] = Object.entries(layouts).find(
+      ([_, icon]) => layout.innerHTML === icon
+    )
+    if (editor.style.display === 'block') {
+      codemirror.focus()
+
+      document.body.classList.add(cls)
+    } else {
+      document.body.classList.remove(cls)
+    }
+    sizeGL()
+  })
+  layout.addEventListener('click', () => {
+    const layoutIcons = Object.entries(layouts)
+    const idx = layoutIcons.findIndex(([_, icon]) => layout.innerHTML === icon)
+    const [cls, icon] = layoutIcons[idx]
+    const [nextCls, nextIcon] = layoutIcons[(idx + 1) % layoutIcons.length]
+
+    document.body.classList.remove(cls)
+    document.body.classList.add(nextCls)
+    layout.innerHTML = nextIcon
+
+    sizeGL()
   })
 }
 

@@ -111,8 +111,13 @@ export const sizeGL = () => {
   }
   gl.canvas.width = window.innerWidth
   gl.canvas.height = window.innerHeight
-  gl.canvas.style.width = window.innerWidth + 'px'
-  gl.canvas.style.height = window.innerHeight + 'px'
+  if (document.body.classList.contains('vside')) {
+    gl.canvas.width /= 2
+  } else if (document.body.classList.contains('hside')) {
+    gl.canvas.height /= 2
+  }
+  gl.canvas.style.width = gl.canvas.width + 'px'
+  gl.canvas.style.height = gl.canvas.height + 'px'
   gl.viewport(0, 0, gl.canvas.width, gl.canvas.height)
   gl.uniform3fv(uniforms.iResolution, [
     gl.canvas.width,
