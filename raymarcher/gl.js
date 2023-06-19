@@ -109,21 +109,31 @@ export const sizeGL = () => {
   if (!gl) {
     return
   }
-  gl.canvas.width = window.innerWidth
-  gl.canvas.height = window.innerHeight
+  let rw = window.innerWidth
+  let rh = window.innerHeight
+  let cw = rw * window.devicePixelRatio
+  let ch = rh * window.devicePixelRatio
+
   if (document.body.classList.contains('vside')) {
-    gl.canvas.width /= 2
+    rw /= 2
+    cw /= 2
   } else if (document.body.classList.contains('hside')) {
-    gl.canvas.height /= 2
+    rh /= 2
+    ch /= 2
   }
-  gl.canvas.style.width = gl.canvas.width + 'px'
-  gl.canvas.style.height = gl.canvas.height + 'px'
-  gl.viewport(0, 0, gl.canvas.width, gl.canvas.height)
-  gl.uniform3fv(uniforms.iResolution, [
-    gl.canvas.width,
-    gl.canvas.height,
-    window.devicePixelRatio,
-  ])
+
+  rw = Math.floor(rw)
+  rh = Math.floor(rh)
+  cw = Math.floor(cw)
+  ch = Math.floor(ch)
+
+  gl.canvas.width = cw
+  gl.canvas.height = ch
+
+  gl.canvas.style.width = rw + 'px'
+  gl.canvas.style.height = rh + 'px'
+  gl.viewport(0, 0, cw, ch)
+  gl.uniform3fv(uniforms.iResolution, [cw, ch, window.devicePixelRatio])
 
   gl.drawArrays(gl.TRIANGLES, 0, 3)
 }
