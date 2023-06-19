@@ -1,17 +1,40 @@
 import { basicSetup } from 'codemirror'
 import { cpp } from '@codemirror/lang-cpp'
 import { EditorState } from '@codemirror/state'
+import { autocompletion } from '@codemirror/autocomplete'
 import { indentWithTab } from '@codemirror/commands'
-import { foldAll, ensureSyntaxTree } from '@codemirror/language'
+// import { foldAll, ensureSyntaxTree } from '@codemirror/language'
 import { EditorView, keymap } from '@codemirror/view'
 import { getShader, setShader, sizeGL } from './gl'
 import { oneDark } from '@codemirror/theme-one-dark'
 import { linter } from '@codemirror/lint'
-import fragmentSource from './fragment.glsl'
+import fragmentSource from './fragment.glsl?raw'
+
+const lib = import.meta.glob('./lib/*/*.glsl', { as: 'raw', eager: true })
 
 let codemirror = null
 let currentError = null
 const shift = fragmentSource.split('##SHADER##')[0].split('\n').length
+
+function libComplete(context) {
+  let word = context.matchBefore(/\w*/)
+  if (word.from == word.to && !context.explicit) {
+    return null
+  }
+
+  return {
+    from: word.from,
+    options: Object.entries(lib).map(([fn, src]) => {
+      const [, libName, libFn] = fn.match(/\.\/lib\/(.*)\/(.*)\.glsl/)
+      return {
+        label: libFn,
+        type: 'function',
+        info: libName.replace(/_/g, ' '),
+        apply: src,
+      }
+    }),
+  }
+}
 
 const compilerLinter = linter(view => {
   const { doc } = view.state
@@ -57,6 +80,7 @@ const initCodeMirror = () => {
       oneDark,
       EditorView.lineWrapping,
       cpp(),
+      autocompletion({ override: [libComplete] }),
       onChange,
       compilerLinter,
       closeOnEscape,

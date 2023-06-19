@@ -1,9 +1,8 @@
-import vertexSource from './vertex.glsl'
-import fragmentSource from './fragment.glsl'
-import example from './example.glsl'
+import vertexSource from './vertex.glsl?raw'
+import fragmentSource from './fragment.glsl?raw'
+import example from './example.glsl?raw'
 import { getSourceFromUrl, setUrlFromSource } from './browser'
 import { setEditSource } from './edit'
-import { insertShader, preprocessShader } from './lib/preprocess'
 
 let gl = null
 let program = null
@@ -13,6 +12,9 @@ let fragmentShader = null
 const uniforms = {}
 
 let shader = getSourceFromUrl() || example
+
+export const insertShader = (fragmentShader, plug) =>
+  fragmentShader.replace('##SHADER##', plug)
 
 export const getShader = () => shader
 export const setShader = newShader => {
