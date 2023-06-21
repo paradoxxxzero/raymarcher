@@ -3,6 +3,7 @@ import fragmentSource from './fragment.glsl?raw'
 import example from './example.glsl?raw'
 import { getSourceFromUrl, setUrlFromSource } from './browser'
 import { setEditSource } from './edit'
+import { getPref, setPref } from './local'
 
 let gl = null
 let program = null
@@ -99,12 +100,18 @@ export const initGL = canvas => {
       playpause.innerHTML = '⏸️'
       pauseDt += performance.now() / 1000 - pause
       pause = null
+      setPref('pause', false)
       render()
     } else {
+      setPref('pause', true)
       playpause.innerHTML = '▶️'
       pause = performance.now() / 1000
     }
   })
+  if (getPref('pause')) {
+    playpause.innerHTML = '▶️'
+    pause = performance.now() / 1000
+  }
 }
 
 export const sizeGL = () => {

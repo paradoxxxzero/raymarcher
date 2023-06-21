@@ -9,6 +9,7 @@ import { getShader, setShader, sizeGL } from './gl'
 import { oneDark } from '@codemirror/theme-one-dark'
 import { linter } from '@codemirror/lint'
 import fragmentSource from './fragment.glsl?raw'
+import { getPref, setPref } from './local'
 
 const lib = import.meta.glob('./lib/*/*.glsl', { as: 'raw', eager: true })
 
@@ -121,9 +122,11 @@ export const initEdit = () => {
     if (editor.style.display === 'block') {
       codemirror.focus()
 
+      setPref('edit', cls)
       document.body.classList.add(cls)
     } else {
       document.body.classList.remove(cls)
+      setPref('edit', false)
     }
     sizeGL()
   })
@@ -135,10 +138,15 @@ export const initEdit = () => {
 
     document.body.classList.remove(cls)
     document.body.classList.add(nextCls)
+    setPref('edit', nextCls)
     layout.innerHTML = nextIcon
 
     sizeGL()
   })
+  if (getPref('edit')) {
+    layout.innerHTML = layouts[getPref('edit')]
+    toggler.click()
+  }
 }
 
 export const setEditSource = source => {
