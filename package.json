@@ -6,9 +6,11 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build && touch docs/.nojekyll",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "grammar": "lezer-generator lezer-glsl/glsl.grammar -o lezer-glsl/glsl-parser.js"
   },
   "devDependencies": {
+    "@lezer/generator": "^1.3.0",
     "@rollup/pluginutils": "^5.0.2",
     "vite": "^4.3.9"
   },

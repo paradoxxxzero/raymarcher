@@ -1,5 +1,4 @@
 import { basicSetup } from 'codemirror'
-import { cpp } from '@codemirror/lang-cpp'
 import { EditorState } from '@codemirror/state'
 import { autocompletion } from '@codemirror/autocomplete'
 import { indentWithTab } from '@codemirror/commands'
@@ -9,6 +8,7 @@ import { getShader, setShader, sizeGL } from './gl'
 import { oneDark } from '@codemirror/theme-one-dark'
 import { linter } from '@codemirror/lint'
 import fragmentSource from './fragment.glsl?raw'
+import { glsl } from '../lezer-glsl/glsl'
 import { getPref, setPref } from './local'
 
 const lib = import.meta.glob('./lib/*/*.glsl', { as: 'raw', eager: true })
@@ -80,7 +80,7 @@ const initCodeMirror = () => {
       keymap.of([indentWithTab]),
       oneDark,
       EditorView.lineWrapping,
-      cpp(),
+      glsl(),
       autocompletion({ override: [libComplete] }),
       onChange,
       compilerLinter,
