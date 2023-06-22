@@ -36,7 +36,7 @@ import {
 } from '@codemirror/view'
 import { tags } from '@lezer/highlight'
 import { oneDark } from '@codemirror/theme-one-dark'
-import { glsl } from '../lezer-glsl/glsl'
+import { autocomplete, glsl, glslLanguage } from '../lezer-glsl/glsl'
 import fragmentSource from './fragment.glsl?raw'
 import { getShader, setShader, sizeGL } from './gl'
 import { getPref, setPref } from './local'
@@ -60,15 +60,18 @@ function libComplete(context) {
 
   return {
     from: word.from,
-    options: Object.entries(lib).map(([fn, src]) => {
-      const [, libName, libFn] = fn.match(/\.\/lib\/(.*)\/(.*)\.glsl/)
-      return {
-        label: libFn,
-        type: 'function',
-        info: libName.replace(/_/g, ' '),
-        apply: src,
-      }
-    }),
+    options: [
+      ...Object.entries(lib).map(([fn, src]) => {
+        const [, libName, libFn] = fn.match(/\.\/lib\/(.*)\/(.*)\.glsl/)
+        return {
+          label: libFn,
+          type: 'function',
+          info: libName.replace(/_/g, ' '),
+          apply: src,
+        }
+      }),
+      ...autocomplete,
+    ],
   }
 }
 
