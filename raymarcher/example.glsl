@@ -1,5 +1,3 @@
-const float PI = 3.1415926535897932384626433832795;
-
 vec3 opRotateX(in vec3 p, in float theta) {
   float c = cos(theta);
   float s = sin(theta);
@@ -19,93 +17,35 @@ vec3 opRotateZ(in vec3 p, in float theta) {
   p.xy *= mat2(c, -s, s, c);
   return p;
 }
-
 vec3 opTranslate(in vec3 p, in vec3 t) {
   return p - t;
 }
-
-vec3 opRepeat(in vec3 p, in vec3 c) {
-  return mod(p + 0.5 * c, c) - 0.5 * c;
-}
-
-float opRound(in float d, in float rad) {
-  return d - rad;
-}
-
 vec4 opSmoothUnion(vec4 d1, vec4 d2, float k) {
   float h = clamp(0.5 + 0.5 * (d2.x - d1.x) / k, 0.0, 1.0);
   return vec4(mix(d2.x, d1.x, h) - k * h * (1.0 - h), mix(d2.yzw, d1.yzw, h));
 }
-
-float sdTorus(vec3 p, vec2 t) {
-  return length(vec2(length(p.xz) - t.x, p.y)) - t.y;
-}
-
 float sdBox(vec3 p, vec3 b) {
   vec3 d = abs(p) - b;
   return min(max(d.x, max(d.y, d.z)), 0.0) + length(max(d, 0.0));
 }
+float sdPlane(vec3 point) {
+  return point.y;
+}
 
-float sdOctahedron(vec3 p, float s) {
-  p = abs(p);
-  float m = p.x + p.y + p.z - s;
-
-    // exact distance
-    #if 0
-  vec3 o = min(3.0 * p - m, 0.0);
-  o = max(6.0 * p - m * 2.0 - o * 3.0 + (o.x + o.y + o.z), 0.0);
-  return length(p - s * o / (o.x + o.y + o.z));
-    #endif
-
-    // exact distance
-    #if 1
-  vec3 q;
-  if(3.0 * p.x < m)
-    q = p.xyz;
-  else if(3.0 * p.y < m)
-    q = p.yzx;
-  else if(3.0 * p.z < m)
-    q = p.zxy;
-  else
-    return m * 0.57735027;
-  float k = clamp(0.5 * (q.z - q.y + s), 0.0, s);
-  return length(vec3(q.x, q.y - s + k, q.z - k)); 
-    #endif
-
-    // bound, not exact
-    #if 0
-  return m * 0.57735027;
-    #endif
+float sinc(in float x) {
+  return sin(x) / x;
 }
 
 vec4 map(in vec3 p) {
-  const vec3 donutColor = vec3(0.31, 0.16, 0.97);
+  const vec3 planeColor = vec3(.2, .8, .9);
   const vec3 boxColor = vec3(1.0, 0.32, 0.32);
-  const vec3 octahedronColor = vec3(0.44, 1.0, 0.43);
 
-  vec3 dp = opRotateX(p, PI / 2.);
-  // dp = opRotateZ(dp, PI / 6.);
-  // dp = opRotateY(dp, .3 * iTime);
-  // dp = opTwist(dp, .4 * cos(2. * iTime));
-  // dp = opRotateX(dp, .3 * iTime);
-  dp = opRepeat(dp, vec3(1.25));
-  // dp = opRepeat(dp, vec3(1.6));
-  float donut = sdTorus(dp, vec2(.03, .007));
-  // donut = opDisplace(donut, p, .005 * (1. + cos(5. * iTime)));
-
+  float plane = p.y + 0.6 * sinc(10. * p.x) * sinc(10. * p.z);
   vec3 bp = opRotateX(p, .7 * iTime);
-  bp = opTranslate(bp, vec3(.5, .5, .5));
-  bp = opRepeat(bp, vec3(.9));
-  float box = sdBox(bp, vec3(.01));
+  bp = opTranslate(bp, vec3(0., 0., .1 - .1 * sin(iTime)));
+  float box = sdBox(bp, vec3(.2, .1, .3));
 
-  vec3 cp = opRotateZ(p, .5 * iTime);
-  cp = opTranslate(cp, vec3(-.5, -1., 1.));
-  cp = opRepeat(cp, vec3(1.1));
-  float octahedron = sdOctahedron(cp, .03);
-  octahedron = opRound(octahedron, .004);
-
-  vec4 u = opSmoothUnion(vec4(donut, donutColor), vec4(box, boxColor), .01);
-  u = opSmoothUnion(u, vec4(octahedron, octahedronColor), .01);
+  vec4 u = opSmoothUnion(vec4(plane * .5, planeColor), vec4(box, boxColor), .1);
   return u;
 }
 
@@ -118,21 +58,34 @@ vec3 calcNormal(in vec3 pos) {
   return normalize(n);
 }
 
+float calcAO(in vec3 pos, in vec3 nor) {
+  float occ = 0.0;
+  float sca = 1.0;
+  for(int i = 0; i < 5; i++) {
+    float h = 0.01 + 0.12 * float(i) / 4.0;
+    float d = map(pos + h * nor).x;
+    occ += (h - d) * sca;
+    sca *= 0.95;
+    if(occ > 0.35)
+      break;
+  }
+  return clamp(1.0 - 3.0 * occ, 0.0, 1.0) * (0.5 + 0.5 * nor.y);
+}
+
 vec3 shade(in vec3 color, in vec3 p, in bool inside) {
   vec3 col = vec3(0.0);
 
   if(inside) {
     vec3 normal = calcNormal(p);
-    // vec3 ao = calcAO(p, normal);
+    float ao = calcAO(p, normal);
 
     vec3 lamp = vec3(2., -1., 3.);
-    lamp = opRotateY(lamp, iTime * 2.);
     vec3 light = normalize(p - lamp);
 
     float ambient = .1;
     float diffuse = clamp(dot(normal, light), 0., 1.);
     float specular = clamp(pow(dot(normal, normalize(light + p)), 100.0), 0., 1.);
-    col = color * (ambient + diffuse + specular);
+    col = color * (ambient + diffuse + specular) * ao;
 
     col = sqrt(col);
   }
@@ -151,7 +104,7 @@ vec3 rayMarch(in vec3 ro, in vec3 rd) {
 
     mapped = map(p);
 
-    if(mapped.x < minLen || len > maxLen) {
+    if(abs(mapped.x) < minLen || len > maxLen) {
       break;
     }
 
@@ -164,7 +117,7 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
   vec2 uv = (fragCoord * 2.0 - iResolution.xy) / iResolution.y;
 
   float an = 0.7 * iTime;
-  vec3 ro = vec3(1.0 * cos(an), 0.2, -5.0 + sin(an));
+  vec3 ro = vec3(1.0 * cos(an), 1., -5.0 + sin(an));
 
   vec3 ta = vec3(0.0, 0.0, 0.0);
   vec3 ww = normalize(ta - ro);

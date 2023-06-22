@@ -181,7 +181,7 @@ const initCodeMirror = () => {
   })
 
   ensureSyntaxTree(codemirror.state, codemirror.state.doc.length, 1000)
-  // codemirror.dispatch({})
+  codemirror.dispatch({})
   const tree = syntaxTree(codemirror.state)
   const effects = []
 
