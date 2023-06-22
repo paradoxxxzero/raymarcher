@@ -1,14 +1,44 @@
-import { basicSetup } from 'codemirror'
+import {
+  autocompletion,
+  closeBrackets,
+  closeBracketsKeymap,
+  completionKeymap,
+} from '@codemirror/autocomplete'
+import {
+  defaultKeymap,
+  history,
+  historyKeymap,
+  indentWithTab,
+} from '@codemirror/commands'
+import {
+  defaultHighlightStyle,
+  syntaxHighlighting,
+  bracketMatching,
+  foldGutter,
+  foldKeymap,
+  indentOnInput,
+  HighlightStyle,
+} from '@codemirror/language'
+import { lintKeymap, linter } from '@codemirror/lint'
+import { highlightSelectionMatches, searchKeymap } from '@codemirror/search'
 import { EditorState } from '@codemirror/state'
-import { autocompletion } from '@codemirror/autocomplete'
-import { indentWithTab } from '@codemirror/commands'
-// import { foldAll, ensureSyntaxTree } from '@codemirror/language'
-import { EditorView, keymap } from '@codemirror/view'
-import { getShader, setShader, sizeGL } from './gl'
+import {
+  EditorView,
+  crosshairCursor,
+  drawSelection,
+  dropCursor,
+  highlightActiveLine,
+  highlightActiveLineGutter,
+  highlightSpecialChars,
+  keymap,
+  lineNumbers,
+  rectangularSelection,
+} from '@codemirror/view'
+import { tags } from '@lezer/highlight'
 import { oneDark } from '@codemirror/theme-one-dark'
-import { linter } from '@codemirror/lint'
-import fragmentSource from './fragment.glsl?raw'
 import { glsl } from '../lezer-glsl/glsl'
+import fragmentSource from './fragment.glsl?raw'
+import { getShader, setShader, sizeGL } from './gl'
 import { getPref, setPref } from './local'
 
 const lib = import.meta.glob('./lib/*/*.glsl', { as: 'raw', eager: true })
@@ -45,9 +75,17 @@ const compilerLinter = linter(view => {
     let parsed
     while ((parsed = errorRE.exec(currentError))) {
       const [, column, line, message] = parsed
+      let from, to
+      try {
+        from = doc.line(+line + 1 - shift).from + +column
+        to = doc.line(+line + 2 - shift).from - 1
+      } catch (e) {
+        from = 0
+        to = doc.toString().length
+      }
       diagnostics.push({
-        from: doc.line(+line + 1 - shift).from + +column,
-        to: doc.line(+line + 2 - shift).from - 1,
+        from,
+        to,
         severity: 'error',
         message,
       })
@@ -76,11 +114,52 @@ const initCodeMirror = () => {
   const startState = EditorState.create({
     doc: getShader(),
     extensions: [
-      basicSetup,
+      glsl(),
+      lineNumbers(),
+      highlightActiveLineGutter(),
+      highlightSpecialChars(),
+      history(),
+      foldGutter(),
+      drawSelection(),
+      dropCursor(),
+      EditorState.allowMultipleSelections.of(true),
+      indentOnInput(),
+      // syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
+      bracketMatching(),
+      closeBrackets(),
+      autocompletion(),
+      rectangularSelection(),
+      crosshairCursor(),
+      highlightActiveLine(),
+      highlightSelectionMatches(),
+      keymap.of([
+        ...closeBracketsKeymap,
+        ...defaultKeymap,
+        ...searchKeymap,
+        ...historyKeymap,
+        ...foldKeymap,
+        ...completionKeymap,
+        ...lintKeymap,
+      ]),
       keymap.of([indentWithTab]),
+      syntaxHighlighting(
+        HighlightStyle.define([
+          {
+            tag: tags.modifier,
+            color: '#d19a66',
+          },
+          {
+            tag: tags.integer,
+            color: '#79c3ba',
+          },
+          {
+            tag: tags.float,
+            color: '#79c37f',
+          },
+        ])
+      ),
       oneDark,
       EditorView.lineWrapping,
-      glsl(),
       autocompletion({ override: [libComplete] }),
       onChange,
       compilerLinter,

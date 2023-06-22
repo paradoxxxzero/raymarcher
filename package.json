@@ -15,14 +15,17 @@
     "vite": "^4.3.9"
   },
   "dependencies": {
+    "@codemirror/autocomplete": "^6.8.0",
     "@codemirror/commands": "^6.2.4",
     "@codemirror/lang-cpp": "^6.0.2",
+    "@codemirror/language": "^6.8.0",
     "@codemirror/lint": "^6.2.2",
+    "@codemirror/search": "^6.5.0",
     "@codemirror/state": "^6.2.1",
     "@codemirror/theme-one-dark": "^6.1.2",
     "@codemirror/view": "^6.13.2",
     "@lezer/common": "^1.0.3",
-    "codemirror": "^6.0.1",
+    "@lezer/highlight": "^1.1.6",
     "lz-string": "^1.5.0"
   }
 }

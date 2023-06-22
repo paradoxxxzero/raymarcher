@@ -1,33 +1,460 @@
-//!top
-
-@top Program { expression* }
-
-//!expression
-
-expression {
-  Identifier |
-  String |
-  Boolean |
-  Application
+@precedence {
+  subscript
+  arguments
+  suffix @left
+  prefix @left
+  mult @left
+  add @left
+  bitShift @left
+  greaterLess @left
+  equal @left
+  bitAnd @left
+  bitXor @left
+  bitOr @left
+  logicAnd @left
+  logicOr @left
+  logicXor @left
+  concat @left
+  params
+  more
+  else @right
+  statement
+  call
+  assign @right
+  ternary @right
 }
 
-Application { "(" expression* ")" }
+@top Program { externalDeclaration* }
 
-//!tokens
+@skip { ppSpace } {
+  ppEnd { BlockComment* LineComment? "\n" }
+
+  PreprocDirective {
+    pp<"define"> Identifier preprocParams? PreprocArg? "\n" |
+    pp<"if"> PreprocArg "\n" |
+    (pp<"ifdef"> | pp<"ifndef">) Identifier ppEnd |
+    pp<"else"> ppEnd |
+    pp<"endif"> ppEnd |
+    pp<"elif"> PreprocArg "\n" |
+    PreprocDirectiveName PreprocArg "\n"
+  }
+}
+
+preprocParams { "(" commaSep<Identifier | "..."> ")" }
+
+CallExpression {
+  (expression | typeSpecifier) !arguments ArgumentList 
+}
+
+ArgumentList {
+  "(" ~argOrParam commaSep<(expression)> ")"
+}
+
+FieldIdentifier {
+  Swizzle | Field
+}
+
+FieldExpression {
+  expression !subscript "." FieldIdentifier
+}
+
+ParenthesizedExpression {
+  "(" (expression | CommaExpression) ")"
+}
+
+
+SubscriptExpression {
+  expression !subscript "[" Integer "]"
+}
+
+expression[@isGroup=Expression] {
+  ConditionalExpression |
+  AssignmentExpression |
+  BinaryExpression |
+  UnaryExpression |
+  UpdateExpression |
+  SubscriptExpression |
+  CallExpression |
+  FieldExpression |
+  VariableIdentifier ~identifier |
+  Number |
+  boolean |
+  ParenthesizedExpression
+}
+
+CommaExpression {
+  expression !more "," (expression | CommaExpression)
+}
+
+ConditionalExpression {
+  expression !ternary "?" expression ":" expression
+}
+
+AssignmentExpression {
+  (VariableIdentifier |
+   CallExpression |
+   FieldExpression |
+   SubscriptExpression |
+   ParenthesizedExpression) !assign (UpdateOp | "=") expression
+}
+
+NonAssignmentExpression {
+  ConditionalExpression |
+  BinaryExpression |
+  UnaryExpression |
+  UpdateExpression |
+  SubscriptExpression |
+  CallExpression |
+  FieldExpression |
+  VariableIdentifier ~identifier |
+  Number |
+  boolean |
+  ParenthesizedExpression
+}
+
+UnaryExpression {
+  (LogicOp<"!"> | ArithOp<"+" | "-"> | BitOp<"~">) !suffix expression
+}
+
+BinaryExpression {
+  expression !add ArithOp<"+" | "-"> expression |
+  expression !mult (ArithOp { "*" } | ArithOp<"/" | "%">) expression |
+  expression !logicAnd LogicOp { "&&" } expression |
+  expression !logicOr LogicOp { "||" } expression |
+  expression !bitOr BitOp<"|"> expression |
+  expression !bitXor BitOp<"^"> expression |
+  expression !bitAnd BitOp { "&" } expression |
+  expression !equal CompareOp<"==" | "!="> expression |
+  expression !greaterLess CompareOp<"<=" | ">=" | ">" | "<"> expression |
+  expression !bitShift BitOp<"<<" | ">>"> expression |
+  expression !concat incDec expression
+}
+
+UpdateExpression {
+  incDec !prefix expression | expression !suffix incDec
+}
+
+
+Declaration {
+  (FunctionPrototype |
+  initDeclaratorList |
+  kw<"precision"> precisionQualifier typeSpecifier |
+  TypeQualifier Identifier "{" commaSep<StructDeclarator> "}" (Identifier | Identifier !subscript arraySpecifier)? |
+  TypeQualifier commaSep<Identifier>) ";"
+}
+
+FunctionPrototype {
+  fullySpecifiedType Identifier !params "(" commaSep<ParameterDeclaration> ")"
+}
+
+ParameterDeclaration {
+  TypeQualifier? typeSpecifier (Identifier !subscript arraySpecifier?)?
+}
+
+initDeclaratorList {
+  singleDeclaration |
+  initDeclaratorList "," VariableIdentifier !subscript arraySpecifier? ("=" Initializer)?
+}
+
+singleDeclaration {
+  fullySpecifiedType (VariableIdentifier !subscript arraySpecifier? ("=" Initializer)?)?
+}
+
+fullySpecifiedType {
+  TypeQualifier? typeSpecifier
+}
+
+InvariantQualifier {
+  kw<"invariant">
+}
+
+LayoutQualifier {
+  kw<"layout"> "(" commaSep<LayoutQualifierId> ")"
+}
+
+LayoutQualifierId {
+  Identifier ("=" NonAssignmentExpression)? //|
+  // FIXME kw<"shared">
+}
+
+PreciseQualifier {
+  kw<"precise">
+}
+
+TypeQualifier {
+  (storageQualifier |
+  SubroutineQualifier |
+  LayoutQualifier |
+  precisionQualifier |
+  interpolationQualifier |
+  InvariantQualifier |
+  PreciseQualifier)+
+}
+
+SubroutineQualifier {
+  kw<"subroutine"> ("(" commaSep<TypeName Identifier?> ")")? // Added Identifier here
+}
+
+TypeName {
+  Identifier
+}
+
+typeSpecifier {
+  typeSpecifierNonarray !subscript arraySpecifier?
+}
+
+arraySpecifier {
+  ("[" NonAssignmentExpression? "]")+
+}
+
+boolean {
+  @specialize[@name=Boolean]<identifier, "true" | "false">
+}
+
+type {
+  @specialize[@name=Type]<identifier,
+    "bool" | "int" | "uint" | "atomic_uint" | "float" | "double" | "void" | 
+    "bvec2" | "bvec3" | "bvec4" | 
+    "ivec2" | "ivec3" | "ivec4" | 
+    "uvec2" | "uvec3" | "uvec4" | 
+    "dvec2" | "dvec3" | "dvec4" | 
+    "vec2" | "vec3" | "vec4" | 
+    "mat2" | "mat3" | "mat4" |
+    "mat2x2" | "mat3x2" | "mat4x2" |
+    "mat2x3" | "mat3x3" | "mat4x3" |
+    "mat2x4" | "mat3x4" | "mat4x4" |
+    "dmat2" | "dmat3" | "dmat4" |
+    "dmat2x2" | "dmat3x2" | "dmat4x2" |
+    "dmat2x3" | "dmat3x3" | "dmat4x3" |
+    "dmat2x4" | "dmat3x4" | "dmat4x4" |
+    "sampler1D" | "sampler2D" | "sampler3D" | "samplerCube" | "sampler2DRect" |
+    "sampler1DArray" | "sampler2DArray" | "samplerCubeArray" | "samplerBuffer" |
+    "sampler2DMS" | "sampler2DMSArray" |
+    "isampler1D" | "isampler2D" | "isampler3D" | "isamplerCube" | "isampler2DRect" |
+    "isampler1DArray" | "isampler2DArray" | "isamplerCubeArray" | "isamplerBuffer" |
+    "isampler2DMS" | "isampler2DMSArray" |
+    "usampler1D" | "usampler2D" | "usampler3D" | "usamplerCube" | "usampler2DRect" |
+    "usampler1DArray" | "usampler2DArray" | "usamplerCubeArray" | "usamplerBuffer" |
+    "usampler2DMS" | "usampler2DMSArray" |
+    "sampler1DShadow" | "sampler2DShadow" | "samplerCubeShadow" | "sampler2DRectShadow" |
+    "sampler1DArrayShadow" | "sampler2DArrayShadow" | "samplerCubeArrayShadow" |
+    "image1D" | "image2D" | "image3D" | "imageCube" | "image2DRect" | "image1DArray" |
+    "image2DArray" | "imageCubeArray" | "imageBuffer" | "image2DMS" | "image2DMSArray" |
+    "iimage1D" | "iimage2D" | "iimage3D" | "iimageCube" | "iimage2DRect" | "iimage1DArray" |
+    "iimage2DArray" | "iimageCubeArray" | "iimageBuffer" | "iimage2DMS" | "iimage2DMSArray" |
+    "uimage1D" | "uimage2D" | "uimage3D" | "uimageCube" | "uimage2DRect" | "uimage1DArray" |
+    "uimage2DArray" | "uimageCubeArray" | "uimageBuffer" | "uimage2DMS" | "uimage2DMSArray"
+    >
+}
+
+typeSpecifierNonarray {
+  type |
+  StructSpecifier // |
+  //FIXME Identifier
+}
+
+StructSpecifier {
+  kw<"struct"> Identifier? "{" StructDeclaration+ "}"
+}
+
+StructDeclaration {
+  TypeQualifier? typeSpecifier commaSep<StructDeclarator> ";"
+}
+
+StructDeclarator {
+  Identifier !subscript arraySpecifier?
+}
+
+Initializer {
+  expression |
+  "{" commaSep<Initializer> "}"
+}
+
+DeclarationStatement {
+  Declaration
+}
+
+Statement {
+  CompoundStatement |
+  SimpleStatement
+}
+
+SimpleStatement {
+  DeclarationStatement |
+  ExpressionStatement |
+  SelectionStatement |
+  SwitchStatement |
+  CaseLabel |
+  IterationStatement |
+  JumpStatement
+}
+
+CompoundStatement {
+  !statement "{" Statement* !statement "}"
+}
+
+ExpressionStatement {
+  (expression | CommaExpression)? ";"
+}
+
+SelectionStatement {
+  kw<"if"> "(" (expression | CommaExpression) ")" Statement (!else kw<"else"> Statement)?
+}
+
+Condition {
+  (expression | CommaExpression) |
+  fullySpecifiedType Identifier "=" Initializer
+}
+
+SwitchStatement {
+  kw<"switch"> "(" (expression | CommaExpression) ")" "{" Statement* "}"
+}
+
+CaseLabel {
+  ((kw<"case"> (expression | CommaExpression)) | kw<"default">) ":"
+}
+
+IterationStatement {
+  kw<"while"> "(" Condition ")" Statement |
+  kw<"do"> Statement kw<"while"> "(" (expression | CommaExpression) ")" ";" |
+  kw<"for"> "(" ForInitStatement ForRestStatement ")" Statement
+}
+
+ForInitStatement {
+  ExpressionStatement |
+  DeclarationStatement
+}
+
+ForRestStatement {
+  Condition? ";" (expression | CommaExpression)?
+}
+
+JumpStatement {
+  (kw<"continue"> |
+  kw<"break"> |
+  kw<"return"> |
+  kw<"return"> (expression | CommaExpression) |
+  kw<"discard">) ";" // Fragment shader only.
+}
+
+externalDeclaration {
+  FunctionDefinition |
+  Declaration |
+  ";"
+}
+
+FunctionDefinition {
+  FunctionPrototype CompoundStatement
+}
+
+VariableIdentifier {
+  identifier
+}
+
+Identifier {
+  identifier
+}
+
+storageQualifier {
+  @specialize[@name=StorageQualifier]<identifier,
+  "const" | "in" | "out" | "inout" | "centroid" | "patch" | "sample" | "uniform" |
+  "buffer" | "shared" | "coherent" | "volatile" | "restrict" | "readonly" | "writeonly">
+}
+
+interpolationQualifier {
+  @specialize[@name=InterpolationQualifier]<identifier,"smooth" | "flat" | "noperspective">
+}
+
+precisionQualifier {
+  @specialize[@name=PrecisionQualifier]<identifier,"lowp" | "mediump" | "highp">
+}
+
+Number {
+  Integer | Float
+}
+
+kw<term> { @specialize[@name={term}]<identifier, term> }
+
+commaSep<term> { "" | term ("," term)* }
+
+@skip { whitespace | LineComment | BlockComment | PreprocDirective }
+
+@external propSource glslHighlighting from "./glsl-highlight.js"
 
 @tokens {
-  Identifier { $[a-zA-Z_]+ }
-  String { '"' (!["\\] | "\\" _)* '"' }
-  Boolean { "#t" | "#f" }
-  LineComment { ";" ![\n]* }
-  space { $[ \t\n\r]+ }
-  "(" ")"
+  whitespace {
+    ($[ \t\r\n] | "\\" "\r"? "\n")+
+  }
+  pp[@name="#" {name}]<name> { "#" $[ \t]* name }
+
+  PreprocDirectiveName {
+    "#" $[ \t]* $[a-zA-Z] $[a-zA-Z0-9_]*
+  }
+
+  @precedence { pp, PreprocDirectiveName }
+
+  PreprocArg {
+    (![\n] | "\\" "\r"? "\n")+
+  }
+
+  ppSpace { $[ \t]+ }
+
+  @precedence { "(", PreprocArg, ppSpace }
+
+  Float {
+    "0x"?
+    (($[0-9]+ ("'" $[0-9]+)* |
+     "0b" $[0-9]+ ("'" $[0-9]+)* |
+     "0x" $[0-9a-fA-F]+ ("'" $[0-9a-fA-F]+)*)
+     ("." ($[0-9a-fA-F]+ ("'" $[0-9a-fA-F]+)*)?) |
+     "." $[0-9]+ ("'" $[0-9]+)*)
+    ($[eEpP] ($[-\+]? $[0-9a-fA-F]+ ("'" $[0-9a-fA-F]+)*)?)? ("lf" | "LF" | "f" | "F")?
+  }
+
+  Integer {
+    "0x"?
+    ($[0-9]+ ("'" $[0-9]+)* |
+     "0b" $[0-9]+ ("'" $[0-9]+)* |
+     "0x" $[0-9a-fA-F]+ ("'" $[0-9a-fA-F]+)*)
+    ("u" | "U" )?
+  }
+
+  Swizzle {
+    $[w-z] $[w-z]? $[w-z]? $[w-z]?
+  }
+
+  @precedence { Float, Integer, "." }
+
+  identifier {
+    $[a-zA-Z_] $[a-zA-Z0-9_]*
+  }
+
+  Field {
+    "length()"
+  }
+
+  LineComment { "//" ("\\" (![\n] | "\\r"? "\\n") | ![\n])* }  
+  BlockComment { "/*" blockCommentRest }
+  blockCommentRest { ![*] blockCommentRest | "*" blockCommentAfterStar }
+  blockCommentAfterStar { "/" | "*" blockCommentAfterStar | ![/*] blockCommentRest }
+
+  @precedence { LineComment, BlockComment, ArithOp }
+
+  ArithOp<expr> { expr }
+
+  BitOp<expr> { expr }
+
+  CompareOp<expr> { expr }
+
+  LogicOp<expr> { expr }
+
+  UpdateOp {
+    ($[*/%+\-&^|] | "<<" | ">>") "="
+  }
+
+  incDec[@name=UpdateOp] { "++" | "--" }
+
+  "(" ")" "{" "}" "[" "]"
 }
-
-//!skip
-
-@skip { space | LineComment }
-
-//!delim
 
 @detectDelim

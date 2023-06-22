@@ -1,54 +1,50 @@
 import { styleTags, tags as t } from '@lezer/highlight'
 
 export const glslHighlighting = styleTags({
-  'typedef struct union enum class typename decltype auto template operator friend noexcept namespace using requires concept import export module __attribute__ __declspec __based':
-    t.definitionKeyword,
-  'extern MsCallModifier MsPointerModifier extern static register thread_local inline const volatile restrict _Atomic mutable constexpr constinit consteval virtual explicit VirtualSpecifier Access':
-    t.modifier,
-  'if else switch for while do case default return break continue goto throw try catch':
+  'if else switch for while do case default return break continue discard':
     t.controlKeyword,
-  'co_return co_yield co_await': t.controlKeyword,
-  'new sizeof delete static_assert': t.operatorKeyword,
-  'NULL nullptr': t.null,
-  this: t.self,
-  'True False': t.bool,
-  'TypeSize PrimitiveType': t.standard(t.typeName),
-  TypeIdentifier: t.typeName,
-  FieldIdentifier: t.propertyName,
-  'CallExpression/FieldExpression/FieldIdentifier': t.function(t.propertyName),
-  'ModuleName/Identifier': t.namespace,
-  PartitionName: t.labelName,
-  StatementIdentifier: t.labelName,
-  'Identifier DestructorName': t.variableName,
+  'struct precision layout subroutine': t.definitionKeyword,
+  'uniform attribute in out inout const flat invariant precise shared':
+    t.modifier,
+  struct: t.definitionKeyword,
+  TypeQualifier: t.modifier,
+  StorageQualifier: t.modifier,
+  LayoutQualifier: t.modifier,
+  PrecisionQualifier: t.unit,
+  InterpolationQualifier: t.modifier,
+  InvariantQualifier: t.modifier,
+  'true false': t.bool,
+  TypeSpecifier: t.typeName,
   'CallExpression/Identifier': t.function(t.variableName),
-  'CallExpression/ScopedIdentifier/Identifier': t.function(t.variableName),
-  'FunctionDeclarator/Identifier FunctionDeclarator/DestructorName': t.function(
+  StatementIdentifier: t.labelName,
+  'Declaration/FunctionPrototype/Identifier': t.function(
     t.definition(t.variableName)
   ),
-  NamespaceIdentifier: t.namespace,
-  OperatorName: t.operator,
+  'FunctionPrototype/Identifier': t.function(t.variableName),
+  UnaryOperator: t.operator,
   ArithOp: t.arithmeticOperator,
   LogicOp: t.logicOperator,
   BitOp: t.bitwiseOperator,
   CompareOp: t.compareOperator,
   AssignOp: t.definitionOperator,
   UpdateOp: t.updateOperator,
+  Type: t.typeName,
   LineComment: t.lineComment,
   BlockComment: t.blockComment,
-  Number: t.number,
-  String: t.string,
-  'RawString SystemLibString': t.special(t.string),
-  CharLiteral: t.character,
-  EscapeSequence: t.escape,
-  'UserDefinedLiteral/Identifier': t.literal,
+  Integer: t.integer,
+  Float: t.float,
+  Boolean: t.bool,
+
+  VariableIdentifier: t.variableName,
+  'FieldIdentifier/Swizzle': t.string,
+  'FieldIdentifier/Field': t.special(t.propertyName),
+  Identifier: t.literal,
+
   PreProcArg: t.meta,
-  'PreprocDirectiveName #include #ifdef #ifndef #if #define #else #endif #elif':
+  'PreprocDirectiveName #ifdef #ifndef #if #define #else #endif #elif':
     t.processingInstruction,
-  MacroName: t.special(t.name),
   '( )': t.paren,
   '[ ]': t.squareBracket,
   '{ }': t.brace,
-  '< >': t.angleBracket,
-  '. ->': t.derefOperator,
   ', ;': t.separator,
 })
