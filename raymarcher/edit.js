@@ -40,6 +40,11 @@ import { glsl } from '../lezer-glsl/glsl'
 import fragmentSource from './fragment.glsl?raw'
 import { getShader, setShader, sizeGL } from './gl'
 import { getPref, setPref } from './local'
+import { foldEffect } from '@codemirror/language'
+import { unfoldCode } from '@codemirror/language'
+import { syntaxTree } from '@codemirror/language'
+import { foldAll } from '@codemirror/language'
+import { ensureSyntaxTree } from '@codemirror/language'
 
 const lib = import.meta.glob('./lib/*/*.glsl', { as: 'raw', eager: true })
 
@@ -172,9 +177,46 @@ const initCodeMirror = () => {
     parent: document.getElementById('editor'),
   })
 
-  //   ensureSyntaxTree(codemirror.state, codemirror.state.doc.length, 5000)
-  //   codemirror.dispatch({})
-  //   foldAll(codemirror)
+  ensureSyntaxTree(codemirror.state, codemirror.state.doc.length, 1000)
+  // codemirror.dispatch({})
+  const tree = syntaxTree(codemirror.state)
+  const effects = []
+
+  tree.iterate({
+    enter: node => {
+      if (node.name == 'FunctionDefinition') {
+        const nameNode = node.node
+          .getChild('FunctionPrototype')
+          ?.node.getChild('Identifier')
+        if (!nameNode) {
+          return
+        }
+        const name = codemirror.state.doc.sliceString(
+          nameNode.from,
+          nameNode.to
+        )
+        // if (['mainImage', 'map', 'shade'].includes(name)) {
+        //   unfoldCode(codemirror, functionNode.from, functionNode.to)
+        // }
+        if (!['mainImage', 'map', 'shade'].includes(name)) {
+          const compoundStatementNode = node.node.getChild('CompoundStatement')
+          if (!compoundStatementNode) {
+            return
+          }
+          effects.push(
+            foldEffect.of({
+              from: compoundStatementNode.from,
+              to: compoundStatementNode.to,
+            })
+          )
+        }
+      }
+    },
+  })
+
+  codemirror.dispatch({
+    effects,
+  })
 }
 
 const layouts = {
