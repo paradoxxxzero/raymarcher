@@ -24,6 +24,11 @@ vec4 opSmoothUnion(vec4 d1, vec4 d2, float k) {
   float h = clamp(0.5 + 0.5 * (d2.x - d1.x) / k, 0.0, 1.0);
   return vec4(mix(d2.x, d1.x, h) - k * h * (1.0 - h), mix(d2.yzw, d1.yzw, h));
 }
+
+vec3 opBend(in vec3 p, float k) {
+  return opRotateZ(p, k * p.x);
+}
+
 float sdBox(vec3 p, vec3 b) {
   vec3 d = abs(p) - b;
   return min(max(d.x, max(d.y, d.z)), 0.0) + length(max(d, 0.0));
@@ -37,15 +42,19 @@ float sinc(in float x) {
 }
 
 vec4 map(in vec3 p) {
-  const vec3 planeColor = vec3(.2, .8, .9);
+  const vec3 planeColor = vec3(.2, .4, .9);
   const vec3 boxColor = vec3(1.0, 0.32, 0.32);
 
-  float plane = p.y + 0.6 * sinc(10. * p.x) * sinc(10. * p.z);
-  vec3 bp = opRotateX(p, .7 * iTime);
-  bp = opTranslate(bp, vec3(0., 0., .1 - .1 * sin(iTime)));
-  float box = sdBox(bp, vec3(.2, .1, .3));
+  float plane = p.y + .2 / (pow(length(p), 2.) + 1.) * sin(10. * length(p) - 2. * iTime);
+  vec3 bp = p;
 
-  vec4 u = opSmoothUnion(vec4(plane * .5, planeColor), vec4(box, boxColor), .1);
+  bp = opRotateX(bp, .7 * iTime);
+  bp = opBend(bp, sin(iTime * 2.));
+  bp = opTranslate(bp, vec3(0., 0., .5 - .1 * sin(iTime)));
+
+  float box = sdBox(bp, vec3(.4, .2, .6));
+
+  vec4 u = opSmoothUnion(vec4(plane, planeColor), vec4(box, boxColor), .5);
   return u;
 }
 
@@ -95,11 +104,11 @@ vec3 shade(in vec3 color, in vec3 p, in bool inside) {
 vec3 rayMarch(in vec3 ro, in vec3 rd) {
   float len = 0.;
   const float minLen = 0.;
-  const float maxLen = 10.;
+  const float maxLen = 15.;
   vec3 p;
   vec4 mapped;
 
-  for(int i = 0; i < 128; i++) {
+  for(int i = 0; i < 50; i++) {
     p = ro + len * rd;
 
     mapped = map(p);
@@ -113,19 +122,25 @@ vec3 rayMarch(in vec3 ro, in vec3 rd) {
   return shade(mapped.yzw, p, len < maxLen);
 }
 
+mat3 setCamera(in vec3 ro, in vec3 ta, float cr) {
+  vec3 cw = normalize(ta - ro);
+  vec3 cp = vec3(sin(cr), cos(cr), 0.0);
+  vec3 cu = normalize(cross(cw, cp));
+  vec3 cv = (cross(cu, cw));
+  return mat3(cu, cv, cw);
+}
+
 void mainImage(out vec4 fragColor, in vec2 fragCoord) {
+  vec2 mo = iMouse.xy / iResolution.xy;
   vec2 uv = (fragCoord * 2.0 - iResolution.xy) / iResolution.y;
+  vec3 ta = vec3(0.);
 
-  float an = 0.7 * iTime;
-  vec3 ro = vec3(1.0 * cos(an), 1., -5.0 + sin(an));
+  float an = 0.7 * iTime + 4.0 * mo.x;
+  vec3 ro = ta + vec3(7. * cos(an), 2. - 4. * (mo.y - .5), 7. * sin(an));
+  mat3 ca = setCamera(ro, ta, 0.0);
+  const float focal = 2.5;
+  vec3 rd = ca * normalize(vec3(uv, focal));
 
-  vec3 ta = vec3(0.0, 0.0, 0.0);
-  vec3 ww = normalize(ta - ro);
-  vec3 uu = normalize(cross(ww, vec3(0.0, 1.0, 0.0)));
-  vec3 vv = (cross(uu, ww));
-
-  vec3 rd = normalize(uv.x * uu + uv.y * vv + 5. * ww);
-
-  vec3 color = rayMarch(ro, rd); // This use the map function defined above
+  vec3 color = rayMarch(ro, rd);
   fragColor = vec4(color, 1.0);
 }
