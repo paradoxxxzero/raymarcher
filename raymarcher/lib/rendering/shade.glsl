@@ -1,5 +1,5 @@
 vec3 shade(in vec3 color, in vec3 p, in bool inside) {
-  vec3 col = vec3(0.0);
+  vec3 col = vec3(0.);
 
   if(inside) {
     vec3 normal = calcNormal(p);
@@ -11,7 +11,7 @@ vec3 shade(in vec3 color, in vec3 p, in bool inside) {
 
     float ambient = .1;
     float diffuse = clamp(dot(normal, light), 0., 1.);
-    float specular = clamp(pow(dot(normal, normalize(light + p)), 100.0), 0., 1.);
+    float specular = clamp(pow(dot(normal, normalize(light + p)), 100.), 0., 1.);
     col = color * (ambient + diffuse + specular);
 
     col = sqrt(col);

@@ -43,11 +43,11 @@ float sinc(in float x) {
 
 vec4 map(in vec3 p) {
   const vec3 planeColor = vec3(.2, .4, .9);
-  const vec3 boxColor = vec3(1.0, 0.32, 0.32);
+  const vec3 boxColor = vec3(1., .32, .32);
 
-  float plane = p.y + .2 / (pow(length(p), 2.) + 1.) * sin(10. * length(p) - 2. * iTime);
+  float plane = p.y + .2 / (pow(length(p), 2.) + .75) * sin(10. * length(p) - 2. * iTime);
+
   vec3 bp = p;
-
   bp = opRotateX(bp, .7 * iTime);
   bp = opBend(bp, sin(iTime * 2.));
   bp = opTranslate(bp, vec3(0., 0., .5 - .1 * sin(iTime)));
@@ -93,7 +93,7 @@ vec3 shade(in vec3 color, in vec3 p, in bool inside) {
 
     float ambient = .1;
     float diffuse = clamp(dot(normal, light), 0., 1.);
-    float specular = clamp(pow(dot(normal, normalize(light + p)), 100.0), 0., 1.);
+    float specular = clamp(pow(dot(normal, normalize(light + p)), 100.), 0., 1.);
     col = color * (ambient + diffuse + specular) * ao;
 
     col = sqrt(col);
@@ -103,12 +103,12 @@ vec3 shade(in vec3 color, in vec3 p, in bool inside) {
 
 vec3 rayMarch(in vec3 ro, in vec3 rd) {
   float len = 0.;
-  const float minLen = 0.;
+  const float minLen = 0.004;
   const float maxLen = 15.;
   vec3 p;
   vec4 mapped;
 
-  for(int i = 0; i < 50; i++) {
+  for(int i = 0; i < 40; i++) {
     p = ro + len * rd;
 
     mapped = map(p);
@@ -131,16 +131,18 @@ mat3 setCamera(in vec3 ro, in vec3 ta, float cr) {
 }
 
 void mainImage(out vec4 fragColor, in vec2 fragCoord) {
-  vec2 mo = iMouse.xy / iResolution.xy;
-  vec2 uv = (fragCoord * 2.0 - iResolution.xy) / iResolution.y;
-  vec3 ta = vec3(0.);
+  vec2 mo = iMouseDrag / iResolution.xy;
+  vec2 uv = (fragCoord * 2. - iResolution.xy) / iResolution.y;
+  vec3 target = vec3(0.);
+  vec3 position = vec3(1.);
+  position = opRotateZ(position, 2. * mo.y);
+  position = opRotateY(position, .7 * iTime + 2. * mo.x);
 
-  float an = 0.7 * iTime + 4.0 * mo.x;
-  vec3 ro = ta + vec3(7. * cos(an), 2. - 4. * (mo.y - .5), 7. * sin(an));
-  mat3 ca = setCamera(ro, ta, 0.0);
-  const float focal = 2.5;
+  vec3 ro = target + position;
+  mat3 ca = setCamera(ro, target, 0.);
+  const float focal = .75;
   vec3 rd = ca * normalize(vec3(uv, focal));
 
   vec3 color = rayMarch(ro, rd);
-  fragColor = vec4(color, 1.0);
+  fragColor = vec4(color, 1.);
 }

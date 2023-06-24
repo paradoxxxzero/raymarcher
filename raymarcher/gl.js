@@ -72,6 +72,7 @@ const linkProgram = () => {
   uniforms.iFrame = gl.getUniformLocation(program, 'iFrame')
   uniforms.iResolution = gl.getUniformLocation(program, 'iResolution')
   uniforms.iMouse = gl.getUniformLocation(program, 'iMouse')
+  uniforms.iMouseDrag = gl.getUniformLocation(program, 'iMouseDrag')
 }
 
 export const initGL = canvas => {
@@ -157,6 +158,7 @@ let raf = null
 let pause = null
 let frame = 0
 let mouse = [0, 0, 0, 0]
+let mouseDrag = [0, 0]
 
 export const render = () => {
   const t = performance.now() / 1000 - pauseDt
@@ -167,6 +169,7 @@ export const render = () => {
   gl.uniform1f(uniforms.iFrame, frame++)
   gl.uniform1f(uniforms.iTimeDelta, dts[dts.length - 1])
   gl.uniform4fv(uniforms.iMouse, mouse)
+  gl.uniform2fv(uniforms.iMouseDrag, mouseDrag)
 
   gl.drawArrays(gl.TRIANGLES, 0, 3)
   if (mouse[3] > 0) {
@@ -184,8 +187,14 @@ setInterval(() => {
 }, 100)
 
 const onMove = e => {
-  mouse[0] = e.clientX
-  mouse[1] = window.innerHeight - e.clientY
+  const x = e.clientX
+  const y = window.innerHeight - e.clientY
+
+  mouseDrag[0] += mouse[0] - x
+  mouseDrag[1] += mouse[1] - y
+
+  mouse[0] = x
+  mouse[1] = y
 }
 
 const onDown = e => {
